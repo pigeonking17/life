@@ -1,4 +1,5 @@
-use std::{thread, time};
+//use std::{thread, time};
+use cursive::views::Dialog;
 
 pub struct Board {
     board: Vec<Vec<bool>>,
@@ -39,19 +40,21 @@ impl Board {
         }
     }
 
-    pub fn render(&self) {
-        println!("+{:-<1$}+", "", self.width);
+    pub fn render(&self) -> String {
+        let mut rendered_board = String::new();
+        rendered_board.push_str(format!("+{:-<1$}+\n", "", self.width).as_str());
         for row in 0..self.height {
-            print!("|");
+            rendered_board.push('|');
             for cell in &self.board[row] {
                 match cell {
-                    true => print!("#"),
-                    false => print!(" "),
+                    true => rendered_board.push('#'),
+                    false => rendered_board.push(' '),
                 };
             }
-            print!("|\n");
+            rendered_board.push_str("|\n");
         }
-        println!("+{:-<1$}+", "", self.width);
+        rendered_board.push_str(format!("+{:-<1$}+\n", "", self.width).as_str());
+        rendered_board
     }
 
     pub fn next_board_state(&self) -> Board {
@@ -80,12 +83,21 @@ impl Board {
 
 fn main() {
     let mut board = Board::random_state(80, 30);
+    let mut siv = cursive::default();
 
-    for _i in 0..100 {
-        board.render();
-        board = board.next_board_state();
-        thread::sleep(time::Duration::from_millis(250));
-    }
+    siv.add_layer(Dialog::text("Welcome to Conway's Game of Life! Press 's' to start and 'q' to quit."));
+
+    siv.add_global_callback('q', |s| s.quit());
+    siv.add_global_callback('s', move |s| board = next(s, &mut board));
+
+    siv.run();
+}
+
+fn next(s: &mut cursive::Cursive, board: &mut Board) -> Board {
+    s.pop_layer();
+    let msg = board.render();
+    s.add_layer(Dialog::text(msg));
+    board.next_board_state()
 }
 
 fn get_neighbours(x_pos: usize, y_pos: usize, board: &Board) -> Vec<bool> {
